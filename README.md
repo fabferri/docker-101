@@ -4,7 +4,7 @@ This article provides your first hands-on steps with Docker, with basic commands
 
 ## Table of Contents
 
-1. [Docker: how to start](docker-starting)
+1. [Docker: how to start](docker-starting.md)
 1. [Docker Volume mount](docker-volume-mount.md)
 1. [Docker networking](docker-networking.md)
 1. [Custom Site with Nginx and Docker](custom-site-nginx-docker.md)
