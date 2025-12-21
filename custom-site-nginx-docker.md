@@ -1,4 +1,4 @@
-#  Docker container running NGINX that serves a custom static website
+#  Deploy a Custom Static Website with Docker and Nginx
 
 ## Prerequisites
 Make sure you have Docker installed: `docker --version`

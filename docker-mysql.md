@@ -12,9 +12,6 @@ my-mysql-project/
 └── init.sql            # Database initialization script
 ```
 
-
-
-
 ## step1: Create my.cnf (MySQL Configuration)
 - MySQL loads all .cnf files from /etc/mysql/conf.d/ at startup
 - Settings override defaults from /etc/mysql/my.cnf
