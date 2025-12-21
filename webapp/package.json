@@ -7,6 +7,5 @@
     "start": "node server.js"
   },
   "keywords": ["docker", "nodejs", "webapp"],
-  "author": "",
   "license": "MIT"
 }
