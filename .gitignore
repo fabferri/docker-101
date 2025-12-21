@@ -1,0 +1,28 @@
+# Docker artifacts
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Docker volumes
+volumes/
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+
+# Environment files
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
