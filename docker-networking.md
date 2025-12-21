@@ -91,4 +91,6 @@ This is useful for adding containers to networks after they've been created, wit
 
 [Deploy a Custom Static Website with Docker and Nginx](custom-site-nginx-docker.md)
 
-Coming back to the table of contents: [Docker 101: first hands-on](README.md)
+## Coming back
+
+[Docker 101: first hands-on](README.md)

@@ -520,4 +520,6 @@ docker logout
 
 [Docker Volume mount](docker-volume-mount.md)
 
-Coming back to the table of contents: [Docker 101: first hands-on](README.md)
+## Coming back
+
+[Docker 101: first hands-on](README.md)

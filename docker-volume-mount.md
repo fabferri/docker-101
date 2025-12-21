@@ -160,4 +160,6 @@ docker volume rm myvolume
 
 [Docker networking](docker-networking.md)
 
-Coming back to the table of contents: [Docker 101: first hands-on](README.md)
+## Coming back
+
+[Docker 101: first hands-on](README.md)
