@@ -7,31 +7,28 @@ This article provides your first hands-on steps with Docker, with basic commands
 - [Verify the installation](#verify-the-installation)
 - [Understand the Docker components](#understand-the-docker-components)
 - [Create a Docker group (Linux only)](#create-a-docker-group-linux-only)
-- [Pull a real image](#pull-a-real-image)
+- [Pull a Docker image from Docker Hub](#pull-a-docker-image-from-docker-hub)
 - [Run and manage containers](#run-and-manage-containers)
-- [Creation of multiple containers](#creation-of-multiple-containers)
-- [Learn volume mounts and ports](#learn-volume-mounts-and-ports)
+- [Check docker images in official Docker Hub registry](#check-docker-images-in-official-docker-hub-registry)
+- [Learn port mappings](#learn-port-mappings)
+- [Learn Volume mount](#learn-volume-mount)
 - [Build your first Dockerfile](#build-your-first-dockerfile)
-- [Install Docker Compose](#install-docker-compose)
-- [Configure your workflow](#configure-your-workflow)
 - [Security & hygiene best practices (early!)](#security--hygiene-best-practices-early)
 - [Docker networking basics](#docker-networking-basics)
 - [Useful debugging commands](#useful-debugging-commands)
-- [Common Docker workflows](#common-docker-workflows)
+- [Next steps](#next-steps)
 
 ---
 
 ## Verify the installation
+
 Confirm Docker is installed and running.
 
 ```bash
-docker --version
-docker info
+docker --version # confirms CLI installation
+docker version   # shows the version of docker client and docker server 
+docker info      # confirms the Docker daemon is running
 ```
-`docker --version` → confirms CLI installation
-`docker version` → shows the version of docker client and docker server 
-`docker info` → confirms the Docker daemon is running
-
 
 **Run a test container (sanity check)**
 
@@ -64,8 +61,9 @@ sudo usermod -aG docker $USER
 newgrp docker
 ```
 
-## Pull a real image
-Try pulling something meaningful for your work from docker Hub:
+## Pull a Docker image from Docker Hub
+
+Try pulling few images for your work from Docker Hub:
 
 ```bash
 docker pull nginx
@@ -105,6 +103,14 @@ docker run -it --name myubuntu ubuntu bash
 
 Run a container in the background:
 ```bash
+# This command runs an Nginx web server in a Docker container:
+#   docker run - creates and starts a new container
+#   -d - detached mode (runs in background, doesn't block your terminal)
+#   -p 8080:80 - port mapping:
+#   8080 = port on your host machine
+#   80 = port inside the container (Nginx default HTTP port)
+#   Traffic to localhost:8080 gets forwarded to port 80 in the container
+#   nginx - the Docker image to use (official Nginx web server in Docker Hub)
 docker run -d -p 8080:80 nginx
 ```
 
@@ -164,6 +170,13 @@ docker run -d --restart=unless-stopped nginx
 docker run -d --memory="512m" --cpus="1.0" nginx
 ```
 
+```bash
+#Creation of multiple containers
+for i in {1..5}; do docker run -d -p 80 hello-world; done
+docker ps -a
+```
+The hello-world image is designed to print a welcome message "hello-world" and exit immediately after running, so they're already stopped.
+
 Useful commands to know:
 
 `docker ps`               # running containers
@@ -183,19 +196,52 @@ Useful commands to know:
 `docker stats`            # live container resource usage
 `docker top <id>`         # display running processes in a container
 
+## Check docker images in official Docker Hub registry
 
-## Creation of multiple containers
 ```bash
-for i in {1..5}; do docker run -d -p 80 hello-world; done
-docker ps -a
-```
-The hello-world containers exit immediately after running, so they're already stopped.
+# Search for an image
+docker search nginx
 
-## Learn volume mounts and ports
+# Search with filter for official images
+docker search --filter is-official=true alpine
+docker search --filter is-official=true nginx
+docker search --filter is-official=true python
+docker search --filter is-official=true redis
+
+# Limit results
+#   docker search - searches Docker Hub registry for images
+#   --limit 5 - restricts output to only 5 results (default is 25)
+#   nginx - the search term
+docker search --limit 5 nginx
+```
+
+Check if you can pull it:
+```bash
+# Pull specific tag 
+#    docker pull - command to download an image
+#    node - official Node.js image name
+#    :18-alpine - tag specifying Node.js version 18 with Alpine Linux base
+docker pull node:18          # Full Debian-based
+docker pull node:18-slim     # Debian (minimal)
+docker pull node:18-alpine   # Alpine Linux
+docker pull node:latest      # Latest version
+docker pull nginx:latest     #
+docker pull nginx:alpine     # Nginx on Alpine
+docker pull python:3.11-slim # Python slim variant
+
+# verify the OS release:
+#   docker run - creates and starts a new container
+#   --rm       - automatically removes the container after it exits (cleanup, no leftover stopped containers)
+#   node:18    - the Node.js version 18 image from Docker Hub
+#   cat /etc/os-release - command executed inside the container that displays OS information (distribution name, version)
+docker run --rm node:18 cat /etc/os-release
+```
+
+## Learn port mappings
 
 Most real apps need filesystem access and networking.
 
-**Port mapping**
+
 ```bash
 # Map container port 3000 to host port 3000
 docker run -p 3000:3000 node
@@ -216,9 +262,41 @@ docker run -d -p 80:80 -p 443:443 nginx
 docker run -d -p 127.0.0.1:8080:80 nginx
 ```
 
-**Volume mount**
+You cannot remove or change port mappings from an existing container. Port mappings are set when the container is created and are immutable. Port mapping are locked in at container creation and cannot be modified afterward, whether the container is running or stopped. Container needs to be deleted and recreated with different port mapping:
+```bash
+# Find nginx container ID
+docker ps -a --filter ancestor=nginx  
+
+# Remove the old container first
+docker rm -f <container_id>
+
+# recreate a new container with different port mapping
+docker run -d -p 9090:80 nginx
+```
+
+## Learn Volume mount
+
+Docker has three types of volume mounts: **Named Volumes**, **Bind Mounts**, **Anonymous Volumes**.
+
+1. **Named Volumes** (created and managed by Docker)
+Named volumes are managed by Docker and persist independently of containers. <br>
+**Why use volumes:**
+- **Persist data** beyond container lifecycle (databases, uploads, logs)
+- **Share data** between containers
+- **Avoid rebuilds** during development by mounting source code
+- **Better performance** than bind mounts on Windows/Mac
+```bash
+#Stored in Docker's directory (/var/lib/docker/volumes/ on Linux)
+#Persist independently of containers
+docker run -v myvolume:/app nginx
+```
+
+2. **Bind Mounts** (host directory)
+Maps a specific host directory to container with direct access to host filesystem.
 
 ```bash
+docker run -v /host/path:/container/path nginx
+
 # Mount current directory to /app in container
 # What each part does:
 #   docker run - creates and runs a container
@@ -234,19 +312,33 @@ docker run -v $(pwd):/app:ro ubuntu ls /app
 
 # Named volume (persisted data)
 docker run -d -v mydata:/var/lib/mysql mysql
+```
 
-# Windows path example
-docker run -v C:\myapp:/app ubuntu ls /app
+3. **Anonymous Volumes** (temporary)
+- Created automatically without a name
+- Docker generates a random ID
+- **Removed when:**
+  - Container is run with `--rm` flag (removed on container exit)
+  - Container is removed with `-v` flag: `docker rm -v <container>`
+  - Running `docker volume prune` (removes all unused volumes)
+- **NOT removed** when using `docker rm <container>` alone (volume persists as orphaned)
+- they persist as orphaned volumes if you just use `docker rm` without the `-v` flag.
+- Best for temporary data
+
+```bash
+# Anonymous volume created automatically
+docker run -v /app nginx
+
+# Auto-remove container AND anonymous volume on exit
+docker run --rm -v /app nginx
+
+# Remove container and its anonymous volumes
+docker rm -v <container_id>
 ```
 
 **Volume management commands:**
 
-Named volumes are managed by Docker and persist independently of containers. <br>
-**Why use volumes:**
-- **Persist data** beyond container lifecycle (databases, uploads, logs)
-- **Share data** between containers
-- **Avoid rebuilds** during development by mounting source code
-- **Better performance** than bind mounts on Windows/Mac
+
 Use these commands to create, inspect, and clean up volumes:
 
 ```bash
@@ -257,27 +349,76 @@ docker volume rm myvolume           # remove a volume (only works if not in use)
 docker volume prune                 # remove all unused volumes (frees disk space)
 ```
 
-**Note** <br>
-Volumes can only be removed when no containers (running or stopped) are using them:<br>
-step1: Find which containers are using the volume
+Create a named volume for Nginx static pages
 ```bash
-docker ps -a --filter volume=myvolume
+# Step 1: Create a named volume
+docker volume create nginx-html
+
+#Step 2: Create a temporary container to add HTML files to the volume
+# Run a temporary nginx container with the volume mounted
+docker run -d --name temp-nginx -v nginx-html:/usr/share/nginx/html nginx
+
+# Step 3: Create your static HTML file
+# Copy a custom HTML file into the container (which writes to the volume)
+echo "<h1>Hello from my Nginx volume!</h1><p>This is stored in a named volume.</p>" > index.html
+docker cp index.html temp-nginx:/usr/share/nginx/html/index.html
+
+# Step 4: Stop and remove the temporary container
+docker rm -f temp-nginx
+
+# Step 5: Run a new Nginx container with the volume
+docker run -d -p 8080:80 -v nginx-html:/usr/share/nginx/html --name my-nginx nginx
+
+# Step 6: Test your static page
+# Open in browser or use curl
+curl http://localhost:8080
+
+#Verify the volume persists:
+# Remove the container
+docker rm -f my-nginx
+
+# Run a new container with the same volume
+docker run -d -p 8080:80 -v nginx-html:/usr/share/nginx/html --name my-nginx-new nginx
+
+# Your HTML file is still there!
+curl http://localhost:8080
+
+# Inspect the volume:
+docker volume inspect nginx-html
 ```
-step2: Stop the container(s)
+The data in nginx-html volume persists independently of containers!
+
+Example to recreate the container with different port mappings, keeping data by named volumes:
 ```bash
-docker stop <container_id>
-```
-step3: Remove the container(s)
-```bash
-docker rm <container_id>
+# Original container with volume
+docker run -d -p 8080:80 -v mydata:/usr/share/nginx/html --name web1 nginx
+
+# Stop and remove
+docker rm -f web1
+
+# Recreate with different port, same volume
+docker run -d -p 9090:80 -v mydata:/usr/share/nginx/html --name web2 nginx
 ```
 
-step4: Now remove the volume
+
+**Note** <br>
+Volumes can only be removed when no containers (running or stopped) are using them:<br>
+
 ```bash
+# step1: Find which containers are using the volume
+docker ps -a --filter volume=myvolume
+
+# step2: Stop the container(s)
+docker stop <container_id>
+
+# step3: Remove the container(s)
+docker rm <container_id>
+
+# step4: Now remove the volume
 docker volume rm myvolume
 ```
 
-Another alternative way do do it:
+Another alternative way to do it:
 ```bash
 # See which containers use the volume
 docker volume inspect myvolume
@@ -288,40 +429,6 @@ docker rm -f <container_id>
 # Then remove volume
 docker volume rm myvolume
 ```
-
-## Check if a docker image is available in official Docker Hub:
-```bash
-# Search for an image
-docker search nginx
-
-# Search with filter for official images
-docker search --filter is-official=true alpine
-docker search --filter is-official=true nginx
-docker search --filter is-official=true python
-docker search --filter is-official=true redis
-
-# Limit results
-docker search --limit 5 nginx
-```
-
-Check if you can pull it:
-```bash
-# Pull specific tag 
-#    docker pull - command to download an image
-#    node - official Node.js image name
-#    :18-alpine - tag specifying Node.js version 18 with Alpine Linux base
-docker pull node:18          # Full Debian-based
-docker pull node:18-slim     # Debian (minimal)
-docker pull node:18-alpine   # Alpine Linux
-docker pull node:latest      # Latest version
-docker pull nginx:latest     #
-docker pull nginx:alpine     # Nginx on Alpine
-docker pull python:3.11-slim # Python slim variant
-
-# verify the OS release:
-docker run --rm node:18 cat /etc/os-release
-```
-
 
 ## Build your first Dockerfile
 
@@ -497,22 +604,41 @@ docker system df
 ```
 
 ## Docker networking basics
+Custom networks allow:
+- Container isolation, containers on different networks can't communicate
+- Name-based discovery, containers can reach each other using container names instead of IP addresses
+- Better control, manage which containers can talk to each other
+Custom networks are essential for multi-container applications where containers need to communicate using predictable names.
+
+Network types:
+
+- **bridge** (default) - created automatically, used by `docker network create`
+- **host** - container shares host's network stack
+- **none** - no networking
 
 ```bash
 # List networks
 docker network ls
 
 # Create a custom network
+# Creates a user-defined bridge network
+# Allows containers on this network to communicate with each other
+# Provides automatic DNS resolution between containers (containers can reach each other by name)
 docker network create mynetwork
 
 # Run containers on the same network
-docker run -d --name app1 --network mynetwork nginx
-docker run -d --name app2 --network mynetwork alpine
+docker run -d --name web --network mynetwork nginx
+docker run -d --name api --network mynetwork node
+# Now 'web' container can reach 'api' container by name:
+docker exec web ping api
+
+# List all networks
+docker network ls
 
 # Inspect network
 docker network inspect mynetwork
 
-# Connect a running container to a network
+# Connect an existing running (or stopped) container to a network
 docker network connect mynetwork container_name
 
 # Disconnect from network
@@ -521,6 +647,48 @@ docker network disconnect mynetwork container_name
 # Remove network
 docker network rm mynetwork
 ```
+
+Connect a container that was started without a network:
+```bash
+# Container started on default bridge network
+docker run -d --name web nginx
+
+# Later, connect it to custom network
+docker network connect mynetwork web
+```
+
+Connect a container to multiple networks:
+```bash
+# Start on one network
+docker run -d --name app --network frontend-net nginx
+
+# Add to another network
+docker network connect backend-net app
+
+# Now 'app' is on both frontend-net AND backend-net
+```
+
+Enable communication between containers:
+```bash
+# Database on custom network
+docker run -d --name db --network mynetwork postgres
+
+# Web app on default network
+docker run -d --name webapp nginx
+
+# Connect webapp to mynetwork so it can reach db
+docker network connect mynetwork webapp
+
+# Now webapp can connect to db using: postgresql://db:5432
+
+# Verify connection:
+docker network inspect mynetwork    # See all connected containers
+docker inspect webapp               # See all networks webapp is on
+
+# Disconnect:
+docker network disconnect mynetwork webapp
+```
+This is useful for adding containers to networks after they've been created, without restarting them.
 
 ## Useful debugging commands
 
