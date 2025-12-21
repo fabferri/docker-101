@@ -492,7 +492,7 @@ CMD ["bash"]
 ```
 
 ```bash
-# Build the image
+# It builds a Docker image from a Dockerfile in the current directory:
 docker build -t my-alpine-bash .
 
 # Build with no cache
@@ -573,16 +573,7 @@ docker build -t myapp:latest -t myapp:v1.0 .
 docker history myapp
 ```
 
-## Security & hygiene best practices (early!)
-
-Don’t skip these:
-
-- Use official or minimal base images
-- Prefer *-slim or distroless
-- Avoid running as root inside containers
-- Clean unused resources periodically: `docker system prune`
-
-**Cleanup commands:**
+## Cleanup commands:
 ```bash
 # Remove all stopped containers
 docker container prune
@@ -758,9 +749,17 @@ docker pull myregistry.azurecr.io/myapp:v1
 docker logout
 ```
 
+## hygiene best practices
+
+- Use official or minimal base images
+- Prefer *-slim or distroless
+- Avoid running as root inside containers
+- Clean unused resources periodically: `docker system prune`
+
 ---
 
 ## Next steps
 
 1. [Custom Site with Nginx and Docker](custom-site-nginx-docker.md)
+1. [Deploying MySQL in Docker](mysql-docker.md)
 1. [Docker Compose](compose.md)
