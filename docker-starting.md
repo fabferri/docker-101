@@ -27,12 +27,24 @@ docker version   # shows the version of docker client and docker server
 docker info      # confirms the Docker daemon is running
 ```
 
-**Run a test container (sanity check)**
+Some useful commands:
 
 ```bash
-docker run hello-world
+systemctl show docker         # displays all properties and configuration details of the Docker service (managed by systemd)
+systemctl status docker       # Human-readable status summary
+systemctl is-active docker    # Just shows "active" or "inactive"
+systemctl is-enabled docker   # Check if starts at boot
+systemctl show docker --property=MainPID   # Show specific property
+systemctl show docker --property=MemoryCurrent  # Memory usage
+systemctl show docker --property=ActiveState    # Just the state
+
+# Service management
+systemctl start docker          # starts the Docker daemon service on Linux systems using systemd.
+systemctl stop docker           # stop the Docker daemon service on Linux systems using systemd.
+systemctl restart docker        # restart the Docker daemon service on Linux systems using systemd.
+systemctl enable docker         # Enable at boot
+systemctl disable docker        # Disable at boot
 ```
-Initally docker image is not available locally. Docker pulls the image from the Docker Hub, creates the container, and executes it — successful execution indicates a healthy environment.
 
 ## Understand the Docker components
 
@@ -43,6 +55,16 @@ Before going further, make sure these concepts are clear:
 - Dockerfile – recipe to build images
 - Registry – where images live (Docker Hub, ACR, ECR, etc.)
 
+**Run a test container (sanity check)**
+
+```bash
+docker run hello-world
+```
+Initally docker image is not available locally. Docker pulls the image from the Docker Hub, creates the container, and executes it — successful execution indicates a healthy environment.
+
+```bash
+docker images  # show the image "hello-world:latest" automatically dowloaded from the Docker Hub registry
+```
 
 ## Create a Docker group (Linux only)
 
@@ -63,14 +85,12 @@ newgrp docker
 Try pulling few images for your work from Docker Hub:
 
 ```bash
-docker pull nginx
-docker pull python:3.11
+docker pull nginx         # download nginx docker image
+docker pull python:3.11   # download linux with python installed
+
+docker images             # list images stored locally
 ```
 
-List images:
-```bash
-docker images
-```
 
 ## Run and manage containers
 
@@ -83,7 +103,7 @@ The same command with specify the bash path: `docker run -it ubuntu /bin/bash`
 
 **More interactive examples:**
 ```bash
-# Run Python interpreter interactively
+# Run Python interpreter interactively. exit() or Ctrl-D to exit
 docker run -it python:3.11 python
 
 # Run Alpine Linux (very lightweight)
@@ -109,8 +129,27 @@ Run a container in the background:
 #   Traffic to localhost:8080 gets forwarded to port 80 in the container
 #   nginx - the Docker image to use (official Nginx web server in Docker Hub)
 docker run -d -p 8080:80 nginx
+
+# Get the container ID or name
+docker ps
+
+# To connect to an existing container running in detached mode, use "docker exec"
+# Connect to the container with an interactive bash 
+docker exec -it <container_id> bash
 ```
 
+NOTE: 
+- the hostname of container is equal to the <container_id>
+- interactive connection to the container accepts the container name at posisbile alternative to <container_id>
+
+```bash
+# Get only container names (running containers)
+docker ps --format "{{.Names}}"
+
+docker exec -it <container_name> bash
+```
+
+ 
 **Running redis in background container:**
 ```bash
 # Run Redis in background
@@ -192,6 +231,7 @@ Useful commands to know:
 `docker exec -it <id> bash` # execute a command in a running container
 `docker stats`            # live container resource usage
 `docker top <id>`         # display running processes in a container
+
 
 ## Check docker images in official Docker Hub registry
 
@@ -422,6 +462,12 @@ docker history myapp
 # Remove all stopped containers
 docker container prune
 
+# Remove containers and skip confirmation prompt
+docker container prune -f
+
+# Remove containers stopped more than 24 hours ago
+docker container prune --filter "until=24h"
+
 # Remove all unused images
 docker image prune
 
@@ -432,7 +478,17 @@ docker volume prune
 docker network prune
 
 # Remove everything unused (containers, images, networks, volumes)
+# Remove:
+# - All stopped containers
+# - All networks not used by at least one container
+# - All images without at least one container associated to them (not just dangling ones)
+# - All build cache
+# BUT it preserves all volumes (even unused ones)
 docker system prune -a
+
+# System prune including volumes
+# Removes everything above PLUS: All unused volumes (volumes not attached to any containers)
+docker system prune -a --volumes
 
 # Show disk usage
 docker system df
