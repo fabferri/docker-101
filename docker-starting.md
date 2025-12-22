@@ -118,7 +118,17 @@ bash
 docker run -it --name myubuntu ubuntu bash
 ```
 
-Run a container in the background:
+## Run nginx container in background
+
+Running nginx web server in background:
+```bash
+docker run -d nginx
+
+# Check it's running
+docker ps
+```
+
+Running nginx in background with port mapping:
 ```bash
 # This command runs an Nginx web server in a Docker container:
 #   docker run - creates and starts a new container
@@ -131,17 +141,37 @@ Run a container in the background:
 docker run -d -p 8080:80 nginx
 
 # Get the container ID or name
-docker ps
+# "docker ps" shows ONLY running containers
+docker ps   
 
 # To connect to an existing container running in detached mode, use "docker exec"
 # Connect to the container with an interactive bash 
+# NOTE: 
+#    the hostname inside the container is equal to the <container_id>
+#    interactive connection to the container accepts the <container_name> as alternative to <container_id>
 docker exec -it <container_id> bash
+
+# Test it
+# Connect to the ngix container in the host running docker (NOT inside the container!)
+curl 127.0.0.1:8080
+
+# Connect to the ngix container in the host
+curl <IP_ADDRESS_HOST>:8080
+
+# Stop the container
+docker stop <container_id>
+
+# check the container status
+docker ps -a
 ```
 
-NOTE: 
-- the hostname of container is equal to the <container_id>
-- interactive connection to the container accepts the container name at posisbile alternative to <container_id>
+The command `docker ps -a` show the STATUS of containers. <br>
+`status=exited (0)` means:
+  `exited` - the container has stopped running
+  `(0)` - the exit code, where 0 means success (the process completed normally without errors)
 
+
+You can use the <container_name> instead of <container_id>: 
 ```bash
 # Get only container names (running containers)
 docker ps --format "{{.Names}}"
@@ -149,8 +179,110 @@ docker ps --format "{{.Names}}"
 docker exec -it <container_name> bash
 ```
 
- 
-**Running redis in background container:**
+Running nginx in background with a name:
+```bash
+# Run in background with custom name: 'my-nginx'
+docker run -d --name my-nginx -p 8080:80 nginx
+
+# Now you can use the name instead of ID
+docker logs my-nginx     # Shows logs and then exits immediately
+docker logs -f my-nginx  # Follow logs in real-time
+docker stop my-nginx     # Stop container
+docker start my-nginx    # Start stopped container
+docker rm my-nginx       # Remove container
+docker rm -f my-nginx    # Force remove running container
+```
+
+```bash
+# Runs an Nginx container in the background with automatic restart behavior.
+# What each part of command does:
+#   docker run - creates and starts a new container
+#   -d - detached mode (runs in background)
+#   --restart=unless-stopped - restart policy that:
+#     Automatically restarts the container if it crashes or exits unexpectedly
+#     Restarts the container after Docker daemon restarts (e.g., system reboot)
+#     Won't restart if you manually stopped it with docker stop
+#   nginx - the image to use
+# Other restart policies:
+#    no - never restart (default)
+#    always - always restart, even if manually stopped
+#    on-failure - restart only if container exits with non-zero status
+#    on-failure:5 - restart max 5 times on failure
+docker run -d --restart=unless-stopped nginx
+
+# Run container with resource limits
+# --memory="512m" - limits memory to 512 megabytes
+#          Container cannot use more than 512MB of RAM
+#          If exceeded, container may be killed or throttled
+# --cpus="1.0" - limits CPU usage to 1.0 CPU core
+#          Container can use up to 100% of one CPU core
+#          With 0.5, it would get 50% of one core
+#          With 2.0, it could use 2 full cores
+docker run -d --memory="512m" --cpus="1.0" nginx
+
+# Limit to 1GB RAM and 2 CPU cores
+docker run -d --memory="1g" --cpus="2.0" nginx
+
+# Memory with reservation (soft limit)
+docker run -d --memory="1g" --memory-reservation="500m" nginx
+
+# Check resource usage
+docker stats
+
+# Inspect resource limits
+docker inspect <container_id> | grep -i memory
+docker inspect <container_id> | grep -i cpu
+```
+
+## Running multiple nginx containers in background
+```bash
+# Create multiple nginx containers with different port mappings
+# Each container will map to a different host port: 8080, 8081, 8082, 8083, 8084
+for i in {0..4}; do 
+  docker run -d --name nginx-$i -p $((8080 + i)):80 nginx
+done
+
+# Check all containers are running
+docker ps
+
+# Test each container in the host
+curl http://localhost:8080
+curl http://localhost:8081
+curl http://localhost:8082
+curl http://localhost:8083
+curl http://localhost:8084
+
+# Stop all nginx containers
+for i in {0..4}; do docker stop nginx-$i; done
+
+# Remove all nginx containers
+for i in {0..4}; do docker rm nginx-$i; done
+```
+
+Alternative with random port mapping:
+```bash
+# Create 5 containers with random host ports
+for i in {1..5}; do 
+  docker run -d --name nginx-random-$i -p 80 nginx
+done
+
+# Check assigned ports
+docker ps --format "table {{.Names}}\t{{.Ports}}"
+
+# Find specific port for a container
+docker port nginx-random-1
+
+# Lists all container IDs (both running and stopped) in quiet mode.
+#   docker ps - lists containers
+#          -a - all containers (running + stopped)
+#          -q - quiet mode (only shows container IDs, no other details)
+docker ps -aq 
+
+# Force remove all containers (running or stopped)
+docker rm -f $(docker ps -aq)
+```
+
+## Running redis container in background 
 ```bash
 # Run Redis in background
 docker run -d --name redis-server redis
@@ -173,47 +305,125 @@ docker exec -it redis-server redis-cli GET mykey
 # Should return: "Hello"
 ```
 
+## Running mongoDB container in background 
+Running mongoDB in background container with root credentials:
 ```bash
 # 
 # Run MongoDB with environment variables
 #   docker run -d - runs container in detached mode (background)
 #   --name mongodb - names the container "mongodb"
-#   -e MONGO_INITDB_ROOT_USERNAME=admin - sets environment variable for MongoDB admin username
-#   -e MONGO_INITDB_ROOT_PASSWORD=password - sets environment variable for MongoDB admin password
-#   mongo - the MongoDB image to use
+#   -e MONGO_INITDB_ROOT_USERNAME=admin -  sets environment variable to create admin user with username "admin"
+#   -e MONGO_INITDB_ROOT_PASSWORD=password - sets environment variable to create admin user with password "password123"
+#   mongo - the official MongoDB image from Docker Hub
 # NOTE: before running the command are required environment variables for initializing MongoDB with root credentials.
-docker run -d --name mongodb -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password mongo
+# NOTE: MongoDB listens on default port 27017 inside the container
+docker run -d --name mongodb -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password123 mongo
+
+# Connect to MongoDB shell
+docker exec -it mongodb mongosh -u admin -p password123
 ```
+
+Few mongoDB shell commands:
+```console
+db.getUsers()          // List users
+db.serverStatus()      // Server status     
+db.stats()             // Database statistics
+db.version()           // MongoDB version
+db.hostInfo()          // Host information
+db.currentOp()         // Current operations
+db.adminCommand({listDatabases: 1})  // Admin command
+```
+
+At this point a mongoDB container is running.
 
 ```bash
-# Runs an Nginx container in the background with automatic restart behavior.
-# What each part of command does:
-#   docker run - creates and starts a new container
-#   -d - detached mode (runs in background)
-#   --restart=unless-stopped - restart policy that:
-#     Automatically restarts the container if it crashes or exits unexpectedly
-#     Restarts the container after Docker daemon restarts (e.g., system reboot)
-#     Won't restart if you manually stopped it with docker stop
-#   nginx - the image to use
-# Other restart policies:
-#    no - never restart (default)
-#    always - always restart, even if manually stopped
-#    on-failure - restart only if container exits with non-zero status
-#    on-failure:5 - restart max 5 times on failure
-docker run -d --restart=unless-stopped nginx
-
-# Run container with resource limits
-docker run -d --memory="512m" --cpus="1.0" nginx
+# Execute command directly in the mogoDB container
+docker exec -it mongodb mongosh -u admin -p password123 --eval "db.version()"
+docker exec -it mongodb mongosh -u admin -p password123 --eval "db.currentOp()"
 ```
+
+### Create a mongoDB database and insert data manually
 
 ```bash
-#Creation of multiple containers
-for i in {1..5}; do docker run -d -p 80 hello-world; done
-docker ps -a
-```
-The hello-world image is designed to print a welcome message "hello-world" and exit immediately after running, so they're already stopped.
+# Connect to MongoDB shell
+docker exec -it mongodb mongosh -u admin -p password123
 
-Useful commands to know:
+# Inside mongosh:
+use mystore                    // Creates/switches to database 
+
+// Create collection and insert documents
+db.products.insertMany([
+  {name: "Laptop", price: 999, category: "Electronics", stock: 50},
+  {name: "Mouse", price: 25, category: "Electronics", stock: 200},
+  {name: "Desk", price: 299, category: "Furniture", stock: 30},
+  {name: "Chair", price: 150, category: "Furniture", stock: 75}
+])
+
+// Verify the data
+db.products.find().pretty()
+show collections
+db.products.countDocuments()
+```
+
+### Load data in a mongoDB database from a JSON file
+Create a file **products.json** on your host:
+```json
+[
+  {"name": "Laptop_top", "price": 1000, "category": "Electronics", "stock": 50},
+  {"name": "Mouse_game", "price": 25, "category": "Electronics", "stock": 200},
+  {"name": "mobileDesk", "price": 315, "category": "Furniture", "stock": 30},
+  {"name": "WoodChair", "price": 250, "category": "Furniture", "stock": 75}
+]
+```
+
+Import the JSON file:
+```bash
+# Copy file to container
+docker cp products.json mongodb:/tmp/products.json
+
+# Import using mongoimport
+docker exec -it mongodb mongoimport \
+  -u admin \
+  -p password123 \
+  --authenticationDatabase admin \
+  --db mystore \
+  --collection products \
+  --file /tmp/products.json \
+  --jsonArray
+
+# Verify
+docker exec -it mongodb mongosh -u admin -p password123 --authenticationDatabase admin mystore --eval "db.products.find()"
+
+# Find with filter
+docker exec -it mongodb mongosh -u admin -p password123 --authenticationDatabase admin mystore --eval "db.products.find({category: 'Electronics'}).toArray()"
+
+# Show all collections
+docker exec -it mongodb mongosh -u admin -p password123 --authenticationDatabase admin mystore --eval "db.getCollectionNames()"
+```
+
+Query the data in mongoDB shell:
+```bash
+docker exec -it mongodb mongosh -u admin -p password123
+
+use mystore
+
+// Find all products
+db.products.find()
+
+// Find products in Electronics category
+db.products.find({category: "Electronics"})
+
+// Find products under $100
+db.products.find({price: {$lt: 100}})
+
+// Count products by category
+db.products.countDocuments({category: "Electronics"})
+
+// Update stock
+db.products.updateOne({name: "Mouse"}, {$set: {stock: 180}})
+```
+
+## Useful Docker commands
 
 `docker ps`               # running containers
 `docker ps -a`            # list all containers (includes containers that are stopped)
@@ -312,7 +522,7 @@ docker run -d -p 9090:80 nginx
 ```
 
 
-## Build your first Dockerfile
+## Build Dockerfile
 
 The standard name is **Dockerfile** (with a capital D and no file extension). For different environments or purposes, you can use variations like:
 
@@ -468,8 +678,11 @@ docker container prune -f
 # Remove containers stopped more than 24 hours ago
 docker container prune --filter "until=24h"
 
-# Remove all unused images
+# Remove all unused images. Removes ONLY images
 docker image prune
+
+# Remove ALL unused images (including tagged ones not used by containers)
+docker image prune -a
 
 # Remove all unused volumes
 docker volume prune
@@ -494,6 +707,20 @@ docker system prune -a --volumes
 docker system df
 ```
 
+Remove everything including running containers:
+```bash
+# Stop all running containers first
+docker stop $(docker ps -q)
+
+# Then remove everything
+docker system prune -a --volumes
+
+# Or force remove all containers (running or stopped)
+docker rm -f $(docker ps -aq)
+
+# Then clean up images and volumes
+docker system prune -a --volumes
+```
 
 
 ## Useful debugging commands
