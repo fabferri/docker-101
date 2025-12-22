@@ -114,7 +114,6 @@ Try pulling few images for your work from Docker Hub:
 ```bash
 docker pull nginx         # download nginx docker image
 docker pull python:3.11   # download linux with python installed
-
 docker images             # list images stored locally
 ```
 
@@ -135,6 +134,7 @@ docker run -it python:3.11 python
 
 # Run Alpine Linux (very lightweight)
 docker run -it alpine sh
+
 # Note: alpine image doesn't manage bash.
 # Install bash inside the alpine container
 docker run -it alpine sh
