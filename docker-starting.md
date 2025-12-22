@@ -5,15 +5,20 @@
 - [Verify the installation](#verify-the-installation)
 - [Understand the Docker components](#understand-the-docker-components)
 - [Create a Docker group (Linux only)](#create-a-docker-group-linux-only)
+- [Useful Docker commands](#useful-docker-commands)
 - [Pull a Docker image from Docker Hub](#pull-a-docker-image-from-docker-hub)
-- [Run and manage containers](#run-and-manage-containers)
-- [Check docker images in official Docker Hub registry](#check-docker-images-in-official-docker-hub-registry)
+- [Running containers interactively](#running-containers-interactively)
+- [Running nginx container in background](#running-nginx-container-in-background)
+- [Running multiple nginx containers in background](#running-multiple-nginx-containers-in-background)
+- [Running redis container in background](#running-redis-container-in-background)
+- [Running mongoDB container in background](#running-mongodb-container-in-background)
 - [Learn port mappings](#learn-port-mappings)
-- [Build your first Dockerfile](#build-your-first-dockerfile)
+- [Check docker images in official Docker Hub registry](#check-docker-images-in-official-docker-hub-registry)
+- [Build Dockerfile](#build-dockerfile)
 - [Advanced Docker build commands](#advanced-docker-build-commands)
 - [Cleanup commands](#cleanup-commands)
 - [Useful debugging commands](#useful-debugging-commands)
-- [Hygiene best practices](#hygiene-best-practices)
+- [hygiene best practices](#hygiene-best-practices)
 
 ---
 
@@ -71,7 +76,8 @@ docker images  # show the image "hello-world:latest" automatically dowloaded fro
 - The docker daemon binds to a Unix socket instead of a TCP port. By default that Unix socket (/var/run/docker.sock) is owned by the user root and other users can access it with sudo. For this reason, docker daemon always runs as the root user.
 - To avoid having to use sudo when you use the docker command, create a Unix group called docker and add users to it. When the docker daemon starts, it makes the ownership of the Unix socket read/writable by the docker group.
 
-> [Note]
+> [!NOTE]
+>
 > Adding a user to the docker group is equivalent to granting root access, since they can run containers with full host access.
 >
 
@@ -79,6 +85,25 @@ docker images  # show the image "hello-world:latest" automatically dowloaded fro
 sudo usermod -aG docker $USER
 newgrp docker
 ```
+
+## Useful Docker commands
+
+`docker ps`               # running containers
+`docker ps -a`            # list all containers (includes containers that are stopped)
+`docker ps -q`            # list container IDs only (useful for scripting)
+`docker logs <id>`        # view container logs
+`docker logs -f <id>`     # follow logs in real-time
+`docker stop <id>`        # stop a running container
+`docker start <id>`       # start a stopped container
+`docker restart <id>`     # restart a container
+`docker rm <id>`          # remove a container
+`docker rm -f <id>`       # force remove a running container
+`docker images`           # list of images stored locally
+`docker rmi <image>`      # remove an image
+`docker inspect <id>`     # detailed container information
+`docker exec -it <id> bash` # execute a command in a running container
+`docker stats`            # live container resource usage
+`docker top <id>`         # display running processes in a container
 
 ## Pull a Docker image from Docker Hub
 
@@ -92,7 +117,7 @@ docker images             # list images stored locally
 ```
 
 
-## Run and manage containers
+## Running containers interactively
 
 Run a container interactively:
 ```bash
@@ -118,7 +143,7 @@ bash
 docker run -it --name myubuntu ubuntu bash
 ```
 
-## Run nginx container in background
+## Running nginx container in background
 
 Running nginx web server in background:
 ```bash
@@ -423,25 +448,44 @@ db.products.countDocuments({category: "Electronics"})
 db.products.updateOne({name: "Mouse"}, {$set: {stock: 180}})
 ```
 
-## Useful Docker commands
 
-`docker ps`               # running containers
-`docker ps -a`            # list all containers (includes containers that are stopped)
-`docker ps -q`            # list container IDs only (useful for scripting)
-`docker logs <id>`        # view container logs
-`docker logs -f <id>`     # follow logs in real-time
-`docker stop <id>`        # stop a running container
-`docker start <id>`       # start a stopped container
-`docker restart <id>`     # restart a container
-`docker rm <id>`          # remove a container
-`docker rm -f <id>`       # force remove a running container
-`docker images`           # list of images stored locally
-`docker rmi <image>`      # remove an image
-`docker inspect <id>`     # detailed container information
-`docker exec -it <id> bash` # execute a command in a running container
-`docker stats`            # live container resource usage
-`docker top <id>`         # display running processes in a container
 
+## Learn port mappings
+
+Most real apps need filesystem access and networking.
+
+
+```bash
+# Map container port 3000 to host port 3000
+docker run -p 3000:3000 node
+
+# Map container port 80 to host port 8080
+#   -d: detach terminal
+#   8080: port on local host
+#   80: port in the container
+docker run -d -p 8080:80 nginx
+
+# Map to a random host port
+docker run -d -p 80 nginx
+
+# Map multiple ports
+docker run -d -p 80:80 -p 443:443 nginx
+
+# Bind to specific network interface
+docker run -d -p 127.0.0.1:8080:80 nginx
+```
+
+You cannot remove or change port mappings from an existing container. Port mappings are set when the container is created and are immutable. Port mapping are locked in at container creation and cannot be modified afterward, whether the container is running or stopped. Container needs to be deleted and recreated with different port mapping:
+```bash
+# Find nginx container ID
+docker ps -a --filter ancestor=nginx  
+
+# Remove the old container first
+docker rm -f <container_id>
+
+# recreate a new container with different port mapping
+docker run -d -p 9090:80 nginx
+```
 
 ## Check docker images in official Docker Hub registry
 
@@ -484,42 +528,7 @@ docker pull python:3.11-slim # Python slim variant
 docker run --rm node:18 cat /etc/os-release
 ```
 
-## Learn port mappings
 
-Most real apps need filesystem access and networking.
-
-
-```bash
-# Map container port 3000 to host port 3000
-docker run -p 3000:3000 node
-
-# Map container port 80 to host port 8080
-#   -d: detach terminal
-#   8080: port on local host
-#   80: port in the container
-docker run -d -p 8080:80 nginx
-
-# Map to a random host port
-docker run -d -p 80 nginx
-
-# Map multiple ports
-docker run -d -p 80:80 -p 443:443 nginx
-
-# Bind to specific network interface
-docker run -d -p 127.0.0.1:8080:80 nginx
-```
-
-You cannot remove or change port mappings from an existing container. Port mappings are set when the container is created and are immutable. Port mapping are locked in at container creation and cannot be modified afterward, whether the container is running or stopped. Container needs to be deleted and recreated with different port mapping:
-```bash
-# Find nginx container ID
-docker ps -a --filter ancestor=nginx  
-
-# Remove the old container first
-docker rm -f <container_id>
-
-# recreate a new container with different port mapping
-docker run -d -p 9090:80 nginx
-```
 
 
 ## Build Dockerfile
