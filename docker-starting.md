@@ -88,22 +88,22 @@ newgrp docker
 
 ## Useful Docker commands
 
-`docker ps`               # running containers
-`docker ps -a`            # list all containers (includes containers that are stopped)
-`docker ps -q`            # list container IDs only (useful for scripting)
-`docker logs <id>`        # view container logs
-`docker logs -f <id>`     # follow logs in real-time
-`docker stop <id>`        # stop a running container
-`docker start <id>`       # start a stopped container
-`docker restart <id>`     # restart a container
-`docker rm <id>`          # remove a container
-`docker rm -f <id>`       # force remove a running container
-`docker images`           # list of images stored locally
-`docker rmi <image>`      # remove an image
-`docker inspect <id>`     # detailed container information
-`docker exec -it <id> bash` # execute a command in a running container
-`docker stats`            # live container resource usage
-`docker top <id>`         # display running processes in a container
+`docker ps`               # running containers <br>
+`docker ps -a`            # list all containers (includes containers that are stopped) <br>
+`docker ps -q`            # list container IDs only (useful for scripting)<br>
+`docker logs <id>`        # view container logs<br>
+`docker logs -f <id>`     # follow logs in real-time<br>
+`docker stop <id>`        # stop a running container<br>
+`docker start <id>`       # start a stopped container<br>
+`docker restart <id>`     # restart a container<br>
+`docker rm <id>`          # remove a container<br>
+`docker rm -f <id>`       # force remove a running container<br>
+`docker images`           # list of images stored locally<br>
+`docker rmi <image>`      # remove an image<br>
+`docker inspect <id>`     # detailed container information<br>
+`docker exec -it <id> bash` # execute a command in a running container<br>
+`docker stats`            # live container resource usage<br>
+`docker top <id>`         # display running processes in a container<br>
 
 ## Pull a Docker image from Docker Hub
 
