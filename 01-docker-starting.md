@@ -251,7 +251,19 @@ Running nginx in background (detached mode) with a name:
 # Run in background with custom name: 'my-nginx'
 docker run -d --name my-nginx -p 8080:80 nginx
 
-# Now you can use the name instead of ID
+# Option 1: Remove a container properly in grafeful approach in two steps:
+# Step 1: Stop the container first
+docker stop my-nginx
+# Step 2: Remove the stopped container
+docker rm my-nginx
+
+
+# Option 2: Force the remove of running container
+docker rm -f my-nginx
+```
+
+You can use the name instead of <container_id>:
+```bash
 docker logs my-nginx     # Shows logs and then exits immediately
 docker logs -f my-nginx  # Follow logs in real-time
 docker stop my-nginx     # Stop container
@@ -327,7 +339,7 @@ for i in {0..4}; do docker stop nginx-$i; done
 for i in {0..4}; do docker rm nginx-$i; done
 ```
 
-Alternative with random port mapping:
+Alternative creation of nginx containers with random port mapping:
 ```bash
 # Create 5 containers in detached mode with random host ports
 for i in {1..5}; do 
@@ -373,7 +385,7 @@ docker exec -it redis-server redis-cli GET mykey
 # Should return: "Hello"
 ```
 
-## Running mongoDB container in background 
+## Running mongoDB container in background
 
 Running mongoDB in background container with root credentials:
 ```bash

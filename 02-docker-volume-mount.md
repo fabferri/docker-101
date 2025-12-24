@@ -23,6 +23,27 @@ Named volumes are managed by Docker and persist independently of containers. <br
 #      :/app - mounted to /app directory inside the container
 #   nginx - the image to use
 docker run -v myvolume:/app nginx
+
+# in another terminal connect to the container
+docker exec -it <container_id>  bash
+
+# inside the nginx container copy the nginx homepage to the /app
+cp /usr/share/nginx/html/index.html /app
+
+# stop the nginx container, exiting from the first terminal
+
+# Start again a new  container (if not already running)
+docker run -d --name my-nginx -v myvolume:/app nginx
+
+# Connect to the container
+docker exec -it my-nginx bash
+
+# Inside the container, browse the /app directory to see 
+# check the presence of the file index.html - the file copied in the volume with first container
+ls -la /app
+
+# remove the container
+docker rm -f my-nginx
 ```
 
 ## **Bind Mounts** (host directory)
