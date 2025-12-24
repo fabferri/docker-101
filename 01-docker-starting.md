@@ -1,21 +1,27 @@
 # Docker: how to start
 
+Before going further, make sure these concepts are clear:
+
+- Image – immutable template (e.g. nginx, python:3.11)
+- Container – running (or stopped) instance of an image
+- Dockerfile – recipe to build images
+- Registry – where images live (Docker Hub, ACR, ECR, etc.)
+
 ## Table of Contents
 
 - [Verify the installation](#verify-the-installation)
-- [Understand the Docker components](#understand-the-docker-components)
 - [Create a Docker group (Linux only)](#create-a-docker-group-linux-only)
 - [Useful Docker commands](#useful-docker-commands)
 - [Pull a Docker image from Docker Hub](#pull-a-docker-image-from-docker-hub)
+- [Check docker images in official Docker Hub registry](#check-docker-images-in-official-docker-hub-registry)
 - [Running containers interactively](#running-containers-interactively)
 - [Running nginx container in background](#running-nginx-container-in-background)
-- [Running multiple nginx containers in background](#running-multiple-nginx-containers-in-background)
+  - [Running multiple nginx containers in background](#running-multiple-nginx-containers-in-background)
 - [Running redis container in background](#running-redis-container-in-background)
 - [Running mongoDB container in background](#running-mongodb-container-in-background)
+  - [Create a mongoDB database and insert data manually](#create-a-mongodb-database-and-insert-data-manually)
+  - [Load data in a mongoDB database from a JSON file](#load-data-in-a-mongodb-database-from-a-json-file)
 - [Learn port mappings](#learn-port-mappings)
-- [Check docker images in official Docker Hub registry](#check-docker-images-in-official-docker-hub-registry)
-- [Build Dockerfile](#build-dockerfile)
-- [Advanced Docker build commands](#advanced-docker-build-commands)
 - [Cleanup commands](#cleanup-commands)
 - [Useful debugging commands](#useful-debugging-commands)
 - [hygiene best practices](#hygiene-best-practices)
@@ -51,15 +57,6 @@ systemctl enable docker         # Enable at boot
 systemctl disable docker        # Disable at boot
 ```
 
-## Understand the Docker components
-
-Before going further, make sure these concepts are clear:
-
-- Image – immutable template (e.g. nginx, python:3.11)
-- Container – running (or stopped) instance of an image
-- Dockerfile – recipe to build images
-- Registry – where images live (Docker Hub, ACR, ECR, etc.)
-
 **Run a test container (sanity check)**
 
 ```bash
@@ -88,24 +85,24 @@ newgrp docker
 
 ## Useful Docker commands
 
-| Command           | Description |
-|-------------------|-------------|
-| `docker ps`       | running containers |
-| `docker ps -a`    | list all containers (includes containers that are stopped) |
-| `docker ps -q`    | list container IDs only (useful for scripting) |
-| `docker logs <id>` | view container logs |
-| `docker logs -f <id>` | follow logs in real-time |
-| `docker stop <id>`    | stop a running container |
-| `docker start <id>`   | start a stopped container |
-| `docker restart <id>` | restart a container |
-| `docker rm <id>`      | remove a container |
-| `docker rm -f <id>`   | force remove a running container |
-| `docker images`       | list of images stored locally |
-| `docker rmi <image>`  | remove an image |
-| `docker inspect <id>` | detailed container information |
-| `docker exec -it <id> bash` | execute a command in a running container |
-| `docker stats`        | live container resource usage |
-| `docker top <id>`     | display running processes in a container |
+| Command                 | Description           |
+|-------------------------|-----------------------|
+| **docker ps**           | running containers    |
+| **docker ps -a**        | list all containers (includes containers that are stopped) |
+| **docker ps -q**        | list container IDs only (useful for scripting) |
+| **docker logs <id>**    | view container logs |
+| **docker logs -f <id>** | follow logs in real-time |
+| **docker stop <id>**    | stop a running container |
+| **docker start <id>**   | start a stopped container |
+| **docker restart <id>** | restart a container |
+| **docker rm <id>**      | remove a container  |
+| **docker rm -f <id>**   | force remove a running container |
+| **docker images**       | list of images stored locally    |
+| **docker rmi <image>**  | remove an image |
+| **docker inspect <id>** | detailed container information |
+| **docker exec -it <id> bash** | execute a command in a running container |
+| **docker stats**        | live container resource usage |
+| **docker top <id>**     | display running processes in a container |
 
 ## Pull a Docker image from Docker Hub
 
@@ -117,13 +114,55 @@ docker pull python:3.11   # download linux with python installed
 docker images             # list images stored locally
 ```
 
+## Check docker images in official Docker Hub registry
+
+```bash
+# Search for an image
+docker search nginx
+
+# Search with filter for official images
+docker search --filter is-official=true alpine
+docker search --filter is-official=true nginx
+docker search --filter is-official=true python
+docker search --filter is-official=true redis
+
+# Limit results
+#   docker search - searches Docker Hub registry for images
+#   --limit 5 - restricts output to only 5 results (default is 25)
+#   nginx - the search term
+docker search --limit 5 nginx
+```
+
+Check if you can pull it:
+```bash
+# Pull specific tag 
+#    docker pull - command to download an image
+#    node - official Node.js image name
+#    :18-alpine - tag specifying Node.js version 18 with Alpine Linux base
+docker pull node:18          # Full Debian-based
+docker pull node:18-slim     # Debian (minimal)
+docker pull node:18-alpine   # Alpine Linux
+docker pull node:latest      # Latest version
+docker pull nginx:latest     # Latest Nginx
+docker pull nginx:alpine     # Nginx on Alpine
+docker pull python:3.11-slim # Python slim variant
+
+# verify the OS release:
+#   docker run - creates and starts a new container
+#   --rm       - automatically removes the container after it exits (cleanup, no leftover stopped containers)
+#   node:18    - the Node.js version 18 image from Docker Hub
+#   cat /etc/os-release - command executed inside the container that displays OS information (distribution name, version)
+docker run --rm node:18 cat /etc/os-release
+```
 
 ## Running containers interactively
 
 Run a container interactively:
+
 ```bash
 docker run -it ubuntu bash
 ```
+
 To exit from the container just run `exit` or `CTRL+D` <br>
 The same command with specify the bash path: `docker run -it ubuntu /bin/bash`
 
@@ -147,8 +186,9 @@ docker run -it --name myubuntu ubuntu bash
 
 ## Running nginx container in background
 
-Running nginx web server in background:
+Running nginx web server in background (detached mode):
 ```bash
+#   -d - detached mode (runs in background, doesn't block your terminal)
 docker run -d nginx
 
 # Check it's running
@@ -161,14 +201,14 @@ Running nginx in background with port mapping:
 #   docker run - creates and starts a new container
 #   -d - detached mode (runs in background, doesn't block your terminal)
 #   -p 8080:80 - port mapping:
-#   8080 = port on your host machine
-#   80 = port inside the container (Nginx default HTTP port)
-#   Traffic to localhost:8080 gets forwarded to port 80 in the container
+#      8080 = port on your host machine
+#      80 = port inside the container (Nginx default HTTP port)
+#      Traffic to localhost:8080 gets forwarded to port 80 in the container
 #   nginx - the Docker image to use (official Nginx web server in Docker Hub)
 docker run -d -p 8080:80 nginx
 
 # Get the container ID or name
-# "docker ps" shows ONLY running containers
+# "docker ps" shows ONLY RUNNING containers
 docker ps   
 
 # To connect to an existing container running in detached mode, use "docker exec"
@@ -198,7 +238,7 @@ The command `docker ps -a` show the STATUS of containers. <br>
   `(0)` - the exit code, where 0 means success (the process completed normally without errors)
 
 
-You can use the <container_name> instead of <container_id>: 
+You can use the <container_name> instead of <container_id>:
 ```bash
 # Get only container names (running containers)
 docker ps --format "{{.Names}}"
@@ -206,7 +246,7 @@ docker ps --format "{{.Names}}"
 docker exec -it <container_name> bash
 ```
 
-Running nginx in background with a name:
+Running nginx in background (detached mode) with a name:
 ```bash
 # Run in background with custom name: 'my-nginx'
 docker run -d --name my-nginx -p 8080:80 nginx
@@ -221,7 +261,7 @@ docker rm -f my-nginx    # Force remove running container
 ```
 
 ```bash
-# Runs an Nginx container in the background with automatic restart behavior.
+# Runs an Nginx container in the background (detached mode) with automatic restart behavior.
 # What each part of command does:
 #   docker run - creates and starts a new container
 #   -d - detached mode (runs in background)
@@ -237,7 +277,7 @@ docker rm -f my-nginx    # Force remove running container
 #    on-failure:5 - restart max 5 times on failure
 docker run -d --restart=unless-stopped nginx
 
-# Run container with resource limits
+# Run container in detached mode with resource limits
 # --memory="512m" - limits memory to 512 megabytes
 #          Container cannot use more than 512MB of RAM
 #          If exceeded, container may be killed or throttled
@@ -261,7 +301,8 @@ docker inspect <container_id> | grep -i memory
 docker inspect <container_id> | grep -i cpu
 ```
 
-## Running multiple nginx containers in background
+### Running multiple nginx containers in background
+
 ```bash
 # Create multiple nginx containers with different port mappings
 # Each container will map to a different host port: 8080, 8081, 8082, 8083, 8084
@@ -288,7 +329,7 @@ for i in {0..4}; do docker rm nginx-$i; done
 
 Alternative with random port mapping:
 ```bash
-# Create 5 containers with random host ports
+# Create 5 containers in detached mode with random host ports
 for i in {1..5}; do 
   docker run -d --name nginx-random-$i -p 80 nginx
 done
@@ -299,7 +340,7 @@ docker ps --format "table {{.Names}}\t{{.Ports}}"
 # Find specific port for a container
 docker port nginx-random-1
 
-# Lists all container IDs (both running and stopped) in quiet mode.
+# Fetch the lists all container IDs (both running and stopped) in quiet mode.
 #   docker ps - lists containers
 #          -a - all containers (running + stopped)
 #          -q - quiet mode (only shows container IDs, no other details)
@@ -333,6 +374,7 @@ docker exec -it redis-server redis-cli GET mykey
 ```
 
 ## Running mongoDB container in background 
+
 Running mongoDB in background container with root credentials:
 ```bash
 # 
@@ -450,12 +492,10 @@ db.products.countDocuments({category: "Electronics"})
 db.products.updateOne({name: "Mouse"}, {$set: {stock: 180}})
 ```
 
-
-
 ## Learn port mappings
 
-Most real apps need filesystem access and networking.
-
+Port mapping (also called port publishing or port forwarding) allows you to expose a container's internal port to the host machine or external network. Containers run in isolated networks, so without port mapping, services running inside them aren't accessible from outside. <br>
+The `-p` flag maps a host port to a container port using the format `-p <host_port>:<container_port>`, enabling external traffic to reach containerized applications.
 
 ```bash
 # Map container port 3000 to host port 3000
@@ -489,193 +529,9 @@ docker rm -f <container_id>
 docker run -d -p 9090:80 nginx
 ```
 
-## Check docker images in official Docker Hub registry
-
-```bash
-# Search for an image
-docker search nginx
-
-# Search with filter for official images
-docker search --filter is-official=true alpine
-docker search --filter is-official=true nginx
-docker search --filter is-official=true python
-docker search --filter is-official=true redis
-
-# Limit results
-#   docker search - searches Docker Hub registry for images
-#   --limit 5 - restricts output to only 5 results (default is 25)
-#   nginx - the search term
-docker search --limit 5 nginx
-```
-
-Check if you can pull it:
-```bash
-# Pull specific tag 
-#    docker pull - command to download an image
-#    node - official Node.js image name
-#    :18-alpine - tag specifying Node.js version 18 with Alpine Linux base
-docker pull node:18          # Full Debian-based
-docker pull node:18-slim     # Debian (minimal)
-docker pull node:18-alpine   # Alpine Linux
-docker pull node:latest      # Latest version
-docker pull nginx:latest     #
-docker pull nginx:alpine     # Nginx on Alpine
-docker pull python:3.11-slim # Python slim variant
-
-# verify the OS release:
-#   docker run - creates and starts a new container
-#   --rm       - automatically removes the container after it exits (cleanup, no leftover stopped containers)
-#   node:18    - the Node.js version 18 image from Docker Hub
-#   cat /etc/os-release - command executed inside the container that displays OS information (distribution name, version)
-docker run --rm node:18 cat /etc/os-release
-```
 
 
 
-
-## Build Dockerfile
-
-The standard name is **Dockerfile** (with a capital D and no file extension). For different environments or purposes, you can use variations like:
-
-- **Dockerfile.dev**
-- **Dockerfile.prod**
-- **Dockerfile.test**
-
-Create a simple Dockerfile:
-
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
-COPY . .
-CMD ["python", "app.py"]
-```
-
-Build and run:
-```bash
-# It creates a local image on your host. 
-# The image is stored locally and can be viewed with: docker images
-docker build -t myapp .
-docker run myapp
-```
-
-If you use a custom name for the docker file, specify it with the -f flag:
-```bash
-docker build -f Dockerfile.dev -t myapp .
-```
-
-**install bash in alpine container through Docker file**
-Create the Dockerfile:
-```dockerfile
-FROM alpine
-
-# Update package index and install bash
-RUN apk update && apk add bash
-
-# Set bash as the default shell for RUN commands
-SHELL ["/bin/bash", "-c"]
-
-# Set bash as the default command when container starts
-CMD ["bash"]
-```
-
-Create the Dockerfile With additional common tools:
-```dockerfile
-FROM alpine
-
-# Install bash and other useful utilities
-# --no-cache - keeps image size smaller
-RUN apk add --no-cache \
-    bash \
-    bash-completion \
-    curl \
-    vim
-
-#  starts bash when container runs
-CMD ["bash"]
-```
-
-```bash
-# It builds a Docker image from a Dockerfile in the current directory:
-docker build -t my-alpine-bash .
-
-# Build with no cache
-docker build --no-cache -t my-alpine-bash .
-
-# Run interactively
-docker run -it my-alpine-bash
-
-# Run with a custom name
-docker run -it --name my-container my-alpine-bash
-
-# Run with volume mount
-docker run -it -v $(pwd):/app my-alpine-bash
-
-# Run in background
-docker run -d --name my-container my-alpine-bash
-
-# Run and remove after exit
-docker run -it --rm my-alpine-bash
-```
-
-
-**More Dockerfile examples:**
-
-**Node.js Application:**
-```dockerfile
-FROM node:18-alpine
-WORKDIR /usr/src/app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-CMD ["node", "server.js"]
-```
-
-**Multi-stage build (smaller final image):**
-```dockerfile
-# Build stage
-FROM node:18 AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# Production stage
-FROM node:18-alpine
-WORKDIR /app
-COPY --from=builder /app/dist ./dist
-COPY package*.json ./
-RUN npm install --production
-CMD ["node", "dist/index.js"]
-```
-
-## Advanced Docker build commands
-
-```bash
-# Build with a specific tag
-docker build -t myapp:v1.0 .
-
-# Build with build arguments
-docker build --build-arg NODE_ENV=production -t myapp .
-
-# Build with no cache
-# --no-cache - forces Docker to rebuild every layer from scratch, ignoring any cached layers
-# When to use --no-cache:
-#   When you want to ensure you get the latest package updates (e.g., apt-get update)
-#   When debugging build issues and you suspect stale cache is the problem
-#   When you've made changes outside the Dockerfile that Docker can't detect
-docker build --no-cache -t myapp .
-
-# Build from a different Dockerfile
-docker build -f Dockerfile.dev -t myapp-dev .
-
-# Build and tag multiple versions
-docker build -t myapp:latest -t myapp:v1.0 .
-
-# View build history
-docker history myapp
-```
 
 ## Cleanup commands
 
@@ -719,6 +575,7 @@ docker system df
 ```
 
 Remove everything including running containers:
+
 ```bash
 # Stop all running containers first
 docker stop $(docker ps -q)
@@ -738,16 +595,21 @@ docker system prune -a --volumes
 
 ```bash
 # Copy files from container to host
-docker cp container_id:/path/to/file.txt ./local/path/
+#   docker cp - command to copy files/directories between container and host
+#   container_id - ID or name of the running or stopped container
+#   :/path/to/file.txt - path to file inside the container (colon separates container ID from path)
+#   ./local/path/ - destination path on host machine (relative or absolute)
+#   Works even if container is stopped (doesn't need to be running)
+docker cp <container_id>:/path/to/file.txt ./local/path/
 
 # Copy files from host to container
-docker cp ./local/file.txt container_id:/path/in/container/
+docker cp ./local/file.txt <container_id>:/path/in/container/
 
 # View container resource usage in real-time
 docker stats
 
 # View detailed container configuration
-docker inspect container_id
+docker inspect <container_id>
 
 # View container processes
 docker top container_id
@@ -768,10 +630,17 @@ docker load < myapp.tar
 docker inspect --format='{{.State.Health.Status}}' container_id
 ```
 
+> [!NOTE]
+> `<container_id>` is a placeholder - replace it with your actual container ID or container name. Do not include the angle brackets `< >` in actual commands.
 
 **Testing a quick image:**
 ```bash
 # Pull and run in one command
+#   docker run - creates and starts a new container
+#   -d - detached mode (runs in background)
+#   -p 80:80 - maps host port 80 to container port 80
+#   --name webserver - assigns a custom name "webserver" to the container (easier to reference than ID)
+#   nginx - the image to use (pulled from Docker Hub if not available locally)
 docker run -d -p 80:80 --name webserver nginx
 
 # Test
@@ -779,27 +648,6 @@ curl http://localhost
 
 # Clean up
 docker stop webserver && docker rm webserver
-```
-
-**Working with registries:**
-```bash
-# Login to Docker Hub
-docker login
-
-# Login to Azure Container Registry
-docker login myregistry.azurecr.io
-
-# Tag image for registry
-docker tag myapp:latest myregistry.azurecr.io/myapp:v1
-
-# Push to registry
-docker push myregistry.azurecr.io/myapp:v1
-
-# Pull from private registry
-docker pull myregistry.azurecr.io/myapp:v1
-
-# Logout
-docker logout
 ```
 
 ## hygiene best practices
@@ -812,8 +660,8 @@ docker logout
 ---
 ## Next step
 
-[Docker Volume mount](docker-volume-mount.md)
+[Docker Volume mount](02-docker-volume-mount.md)
 
 ## Coming back
 
-[Docker 101: first hands-on](README.md)
+[Docker 101: first trek](README.md)

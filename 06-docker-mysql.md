@@ -13,6 +13,7 @@ my-mysql-project/
 ```
 
 ## step1: Create my.cnf (MySQL Configuration)
+
 - MySQL loads all .cnf files from /etc/mysql/conf.d/ at startup
 - Settings override defaults from /etc/mysql/my.cnf
 - Applied every time the container starts
@@ -44,6 +45,7 @@ default-character-set=utf8mb4
 ```
 
 ## step2: Create **init.sql** (Initialization Script)
+
 - This script runs only on first container startup (when database is empty)
 - MySQL runs scripts in /docker-entrypoint-initdb.d/ <ins>only once</ins>
 - Only executes when **/var/lib/mysql** is empty (first run)
@@ -84,6 +86,7 @@ FLUSH PRIVILEGES;
 ```
 
 ## Step3: Dockerfile
+
 ```dockerfile
 FROM mysql:8.0
 
@@ -151,6 +154,7 @@ docker logs mysql-db
 ## Dockerfile with healthcheck
 
 Best practices:
+
 - Never hardcode passwords in production - use Docker secrets or environment variables
 - Always use named volumes for /var/lib/mysql to persist data
 - Use healthcheck to monitor MySQL status
@@ -181,3 +185,13 @@ docker build \
   --build-arg MYSQL_DATABASE=mydb \
   -t my-mysql .
 ```
+
+---
+
+## Next step
+
+[Working with registries](07-registries.md)
+
+## Coming back
+
+[Docker 101: first trek](README.md)

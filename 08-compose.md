@@ -7,6 +7,7 @@ docker compose version
 ```
 
 Compose is essential for:
+
 - Multi-container apps
 - Local dev environments
 - Repeatable setups
@@ -131,3 +132,9 @@ docker compose restart app
 # By default, it preserves volumes (persistent data).
 docker compose down
 ```
+
+---
+
+## Coming back
+
+[Docker 101: first trek](README.md)

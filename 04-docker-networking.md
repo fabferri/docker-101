@@ -1,5 +1,7 @@
 # Docker networking (basics)
+
 Custom networks allow:
+
 - Container isolation, containers on different networks can't communicate
 - Name-based discovery, containers can reach each other using container names instead of IP addresses
 - Better control, manage which containers can talk to each other
@@ -89,8 +91,8 @@ This is useful for adding containers to networks after they've been created, wit
 
 ## Next step
 
-[Deploy a Custom Static Website with Docker and Nginx](custom-site-nginx-docker.md)
+[Deploy a Custom Static Website with Docker and Nginx](05-custom-site-nginx-docker.md)
 
 ## Coming back
 
-[Docker 101: first hands-on](README.md)
+[Docker 101: first trek](README.md)

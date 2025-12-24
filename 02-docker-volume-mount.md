@@ -3,15 +3,25 @@
 Docker has three types of volume mounts: **Named Volumes**, **Bind Mounts**, **Anonymous Volumes**.
 
 ## **Named Volumes** (created and managed by Docker)
+
 Named volumes are managed by Docker and persist independently of containers. <br>
 **Why use volumes:**
+
 - **Persist data** beyond container lifecycle (databases, uploads, logs)
 - **Share data** between containers
 - **Avoid rebuilds** during development by mounting source code
 - **Better performance** than bind mounts on Windows/Mac
+
 ```bash
-#Stored in Docker's directory (/var/lib/docker/volumes/ on Linux)
-#Persist independently of containers
+# Stored in Docker's directory (/var/lib/docker/volumes/ on Linux)
+# Persist independently of containers
+#   docker run - creates and starts a new container. 
+#                "docker run" does not create a persistent/running container. It runs in the foreground.
+#                it stops when the nginx process exits or you press Ctrl+C
+#   -v myvolume:/app - mounts a named volume:
+#      myvolume - the named volume (created automatically if it doesn't exist)
+#      :/app - mounted to /app directory inside the container
+#   nginx - the image to use
 docker run -v myvolume:/app nginx
 ```
 
@@ -25,12 +35,29 @@ docker run -v /host/path:/container/path nginx
 # What each part does:
 #   docker run - creates and runs a container
 #   -v $(pwd):/app - mounts a volume:
-#   $(pwd) - your current working directory on the host
-#   :/app - mapped to /app inside the container
+#      $(pwd) - your current working directory on the host (must exist)
+#      :/app - mounted to /app inside the container (created automatically by Docker if it doesn't exist)
 #   ubuntu - the image to use
 #   ls /app - command executed inside the container
+# Note: You don't need to create /app on the host - it's the container path where your host directory is mounted
 docker run -v $(pwd):/app ubuntu ls /app
 
+
+
+# Verify persistence of bind mount:
+# Step 1: Create a file from inside a container
+docker run --rm -v $(pwd):/app ubuntu sh -c "echo 'Hello from container' > /app/test.txt"
+
+# Step 2: Container is automatically removed (--rm flag), but check the file persists on host
+ls $(pwd)/test.txt        # File still exists on host
+cat $(pwd)/test.txt       # Shows: Hello from container
+
+# Step 3: Clean up
+rm test.txt
+```
+
+Few options:
+```bash
 # Mount with read-only access
 docker run -v $(pwd):/app:ro ubuntu ls /app
 
@@ -38,7 +65,9 @@ docker run -v $(pwd):/app:ro ubuntu ls /app
 docker run -d -v mydata:/var/lib/mysql mysql
 ```
 
+
 ## **Anonymous Volumes** (temporary)
+
 - Created automatically without a name
 - Docker generates a random ID
 - **Removed when:**
@@ -62,7 +91,6 @@ docker rm -v <container_id>
 
 ## Volume management commands
 
-
 Use these commands to create, inspect, and clean up volumes:
 
 ```bash
@@ -73,17 +101,26 @@ docker volume rm myvolume           # remove a volume (only works if not in use)
 docker volume prune                 # remove all unused volumes (frees disk space)
 ```
 
-Create a named volume for Nginx static pages
+## Example: Named volume for Nginx static pages
+
+Create a named volume for Nginx static pages:
 ```bash
 # Step 1: Create a named volume
 docker volume create nginx-html
 
 #Step 2: Create a temporary container to add HTML files to the volume
 # Run a temporary nginx container with the volume mounted
+#   docker run - creates and starts a new container
+#   -d - detached mode (runs in background)
+#   --name temp-nginx - assigns name "temp-nginx" to the container
+#   -v nginx-html:/usr/share/nginx/html - mounts the named volume:
+#      nginx-html - the named volume created in Step 1
+#      :/usr/share/nginx/html - mounted to Nginx's default HTML directory in the container
+#   nginx - the image to use
 docker run -d --name temp-nginx -v nginx-html:/usr/share/nginx/html nginx
 
 # Step 3: Create your static HTML file
-# Copy a custom HTML file into the container (which writes to the volume)
+# Copy a custom HTML file "index.html" from local directory into the container (which writes to the volume)
 echo "<h1>Hello from my Nginx volume!</h1><p>This is stored in a named volume.</p>" > index.html
 docker cp index.html temp-nginx:/usr/share/nginx/html/index.html
 
@@ -124,9 +161,9 @@ docker rm -f web1
 docker run -d -p 9090:80 -v mydata:/usr/share/nginx/html --name web2 nginx
 ```
 
+## Removing volumes
 
-**Note** <br>
-Volumes can only be removed when no containers (running or stopped) are using them:<br>
+Volumes can only be removed when no containers (running or stopped) are using them.
 
 ```bash
 # step1: Find which containers are using the volume
@@ -154,12 +191,51 @@ docker rm -f <container_id>
 docker volume rm myvolume
 ```
 
+## Multiple containers sharing the same volume
+
+Yes, multiple containers can mount and share the same volume simultaneously. This is useful for:
+
+- Sharing configuration files across containers
+- Log aggregation from multiple services
+- Shared storage for microservices
+- Data synchronization between containers
+
+**Example: Multiple containers sharing the same volume**
+
+```bash
+# Create a shared volume
+docker volume create shared-data
+
+# Container 1: Writes data to the volume (includes hostname to identify the writer)
+docker run -d --name writer1 -v shared-data:/data alpine sh -c "while true; do echo \"\$(hostname) - \$(date)\" >> /data/log.txt; sleep 5; done"
+
+# Container 2: Writes data to the volume (includes hostname to identify the writer)
+docker run -d --name writer2 -v shared-data:/data alpine sh -c "while true; do echo \"\$(hostname) - \$(date)\" >> /data/log.txt; sleep 5; done"
+
+# Container 3: Reads from the same volume
+docker run -d --name reader1 -v shared-data:/data alpine sh -c "while true; do tail -f /data/log.txt; sleep 5; done"
+
+# Container 4: Also reads from the same volume
+docker run -d --name reader2 -v shared-data:/data alpine sh -c "while true; do cat /data/log.txt; sleep 5; done"
+
+# View logs from the reader containers
+docker logs -f reader1
+docker logs reader2
+
+# Cleanup
+docker rm -f writer reader1 reader2
+docker volume rm shared-data
+```
+
+> [!NOTE]
+> When multiple containers write to the same volume simultaneously, ensure your application handles file locking and concurrent access properly to avoid data corruption.
+
 ---
 
 ## Next step
 
-[Docker networking](docker-networking.md)
+[Build Dockerfile](03-dockerfile.md)
 
 ## Coming back
 
-[Docker 101: first hands-on](README.md)
+[Docker 101: first trek](README.md)
