@@ -67,8 +67,13 @@ docker rm -f my-nginx
 ## **Bind Mounts** (host directory)
 Maps a specific host directory to container with direct access to host filesystem.
 
+Let's clean all the container in stop:
 ```bash
+# Remove all stopped containers (with confirmation prompt)
+docker container prune
+```
 
+```bash
 # Basic bind mount syntax
 #   docker run - creates and starts a new container
 #   -v /host/path:/container/path - creates a bind mount:
@@ -83,6 +88,9 @@ docker run --name my-nginx -v /tmp:/tmp nginx
 docker exec -it my-nginx bash
 
 
+
+# in the host generate a directory "app" 
+mkdir  $(pwd)/app
 # Mount current directory to /app in container
 # What each part does:
 #   docker run - creates and runs a container
@@ -95,16 +103,17 @@ docker exec -it my-nginx bash
 docker run -v $(pwd):/app ubuntu ls /app
 
 
+
 # Verify persistence of bind mount:
-# Step 1: Create a file from inside a container
-docker run --rm -v $(pwd):/app ubuntu sh -c "echo 'Hello from container' > /app/test.txt"
+# Step 1: Create a file from inside a container (includes container hostname)
+docker run --rm -v $(pwd):/app ubuntu sh -c "echo Hello from container \$(hostname) > /app/test.txt"
 
 # Step 2: Container is automatically removed (--rm flag), but check the file persists on host
 ls $(pwd)/test.txt        # File still exists on host
-cat $(pwd)/test.txt       # Shows: Hello from container
+cat $(pwd)/test.txt       # Shows: Hello from container <container_id>
 
 # Step 3: Clean up
-rm test.txt
+rm $(pwd)/test.txt
 ```
 
 Few options:
@@ -113,9 +122,31 @@ Few options:
 docker run -v $(pwd):/app:ro ubuntu ls /app
 
 # Named volume (persisted data)
-docker run -d -v mydata:/var/lib/mysql mysql
-```
+# Creates and runs a MySQL container in the background with persistent data storage:
+# docker run - creates and starts a new container
+#     -d - detached mode (runs in background, doesn't block terminal)
+#     --name mysql1 - assigns the name "mysql1" to the container
+#     -e MYSQL_ROOT_PASSWORD=mypassword - sets root password (required for MySQL to start)
+#     -v mydata:/var/lib/mysql - mounts a named volume:
+#     mydata - named volume (auto-created if it doesn't exist)
+#     /var/lib/mysql - MySQL's default data directory where it stores all database files
+#    mysql - the MySQL image to use
+# Why this matters: Without the volume, all database data (tables, records, etc.) would be lost when the container is removed. 
+# The named volume mydata ensures your MySQL data persists independently of the container lifecycle.
+docker run -d --name mysql1 -e MYSQL_ROOT_PASSWORD=mypassword -v mydata:/var/lib/mysql mysql
 
+# Connect to the MySQL container's 
+docker exec -it mysql1 mysql -u root -p
+# Then enter: mypassword when prompted
+
+# Once in MySQL CLI, run these commands:
+SHOW DATABASES;              # List all databases
+USE <database_name>;         # Switch to a specific database
+SHOW TABLES;                 # List tables in current database
+DESCRIBE <table_name>;       # Show table structure
+SELECT * FROM <table_name>;  # Query data from a table
+EXIT;                        # Exit MySQL CLI
+```
 
 ## **Anonymous Volumes** (temporary)
 
@@ -130,13 +161,46 @@ docker run -d -v mydata:/var/lib/mysql mysql
 - Best for temporary data
 
 ```bash
-# Anonymous volume created automatically
-docker run -v /app nginx
+# Run nginx with anonymous volume ( anonymous volume created automatically)
+docker run -d --name test-nginx -v /app nginx
+
+# show all the volumes (you'll see the anonymous volume by its random ID)
+docker volume ls
+
+# Check the anonymous volume by inspect
+docker inspect -f '{{json .Mounts}}' test-nginx
+
+# Stop all running containers
+docker stop $(docker ps -q)
+
+# remove all the stopped container
+docker rm $(docker ps -aq -f status=exited)
+
+# Remove all unused volumes (with confirmation prompt)
+# docker volume prune - removes volumes not attached to ANY container (running or stopped)
+#   Only removes "dangling" volumes - volumes not referenced by any container
+#   Will NOT remove volumes attached to stopped containers
+#   Asks for confirmation before deleting (use -f flag to skip confirmation)
+#   To remove ALL volumes: first remove all containers, then run this command
+docker volume prune
 
 # Auto-remove container AND anonymous volume on exit
+# The --rm flag automatically removes the container AND its anonymous volumes when it exits
 docker run --rm -v /app nginx
 
-# Remove container and its anonymous volumes
+# Example with detached mode and named container:
+docker run -d --name mynginx --rm -v /app nginx
+
+# In another terminal, verify the anonymous volume exists
+docker volume ls
+
+# Stop the container (container and its anonymous volume are auto-removed)
+docker stop mynginx
+
+# Verify volume is gone
+docker volume ls
+
+# Alternative: Remove container and its anonymous volumes manually
 docker rm -v <container_id>
 ```
 
