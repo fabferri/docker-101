@@ -13,11 +13,29 @@ Named volumes are managed by Docker and persist independently of containers. <br
 - **Better performance** than bind mounts on Windows/Mac
 
 ```bash
+# Run a basic nginx container in the foreground with a custom name
+#   docker run - creates and starts a new container
+#   --name my-nginx - assigns the name "my-nginx" to the container
+#   nginx - the image to use
+# Container is terminated on CRL-C or exit
+docker run --name my-nginx nginx
+
+# In another terminal, connect to the running container interactively
+#   docker exec - executes a command in a running container
+#   -it - interactive mode with pseudo-TTY (terminal)
+#   my-nginx - the name of the container to connect to
+#   bash - the command to run (opens a bash shell)
+docker exec -it my-nginx  bash
+```
+
+Let's run a basic example of volume mount:
+
+```bash
 # Stored in Docker's directory (/var/lib/docker/volumes/ on Linux)
 # Persist independently of containers
 #   docker run - creates and starts a new container. 
 #                "docker run" does not create a persistent/running container. It runs in the foreground.
-#                it stops when the nginx process exits or you press Ctrl+C
+#                he container stops when the nginx process exits or you press Ctrl+C
 #   -v myvolume:/app - mounts a named volume:
 #      myvolume - the named volume (created automatically if it doesn't exist)
 #      :/app - mounted to /app directory inside the container
@@ -39,7 +57,7 @@ docker run -d --name my-nginx -v myvolume:/app nginx
 docker exec -it my-nginx bash
 
 # Inside the container, browse the /app directory to see 
-# check the presence of the file index.html - the file copied in the volume with first container
+# Check the presence of the file index.html - the file copied in the volume with first container
 ls -la /app
 
 # remove the container
@@ -50,7 +68,20 @@ docker rm -f my-nginx
 Maps a specific host directory to container with direct access to host filesystem.
 
 ```bash
-docker run -v /host/path:/container/path nginx
+
+# Basic bind mount syntax
+#   docker run - creates and starts a new container
+#   -v /host/path:/container/path - creates a bind mount:
+#      /host/path - absolute path to directory on your host machine (must exist)
+#      :/container/path - path inside the container where host directory is mounted
+#   nginx - the image to use
+# Note: Changes made in either location (host or container) are immediately reflected in both
+# docker run -v /host/path:/container/path nginx
+docker run --name my-nginx -v /tmp:/tmp nginx
+
+# in another terminal connect to the container and check the content in the folder /tmp by ls /tmp
+docker exec -it my-nginx bash
+
 
 # Mount current directory to /app in container
 # What each part does:
@@ -62,7 +93,6 @@ docker run -v /host/path:/container/path nginx
 #   ls /app - command executed inside the container
 # Note: You don't need to create /app on the host - it's the container path where your host directory is mounted
 docker run -v $(pwd):/app ubuntu ls /app
-
 
 
 # Verify persistence of bind mount:
