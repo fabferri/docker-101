@@ -1,7 +1,6 @@
 #  Deploy a Custom Static Website with Docker and Nginx
 
-## Prerequisites
-Make sure you have Docker installed: `docker --version`
+This guide demonstrates how to deploy a custom static website using Docker and Nginx. The guide shows how to create HTML content, configure Nginx settings, build a custom Docker image, and run your site in a containerized environment.
 
 ## Step 1: Create the project folder
 
