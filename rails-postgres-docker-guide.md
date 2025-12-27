@@ -138,8 +138,6 @@ CMD ["rails", "server", "-b", "0.0.0.0"]
 File: **docker-compose.yml**
 
 ```yaml
-version: "3.9"
-
 services:
   # PostgreSQL Database Service
   db:
