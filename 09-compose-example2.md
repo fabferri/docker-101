@@ -1,6 +1,6 @@
 # Docker compose: full stack example
 
-## Common Docker workflows
+Example of docker compose with web + database + cache:
 
 ## Step 1: Create a new directory for your project
 ```bash
@@ -42,22 +42,22 @@ volumes:
 EOF
 ```
 
-# Step 3: Verify the docker-compose.yml syntax
+## Step 3: Verify the docker-compose.yml syntax
 ```bash
 docker compose config
 ```
 
-# Step 4: Pull the images from docker hub
+## Step 4: Pull the images from docker hub
 ```bash
 docker compose pull
 ```
 
-# Step 5: Start all services in detached mode (-d runs in background)
+## Step 5: Start all services in detached mode (-d runs in background)
 ```bash
 docker compose up -d
 ```
 
-# Step 6: Verify services are running
+## Step 6: Verify services are running
 ```bash
 docker compose ps
 ```
@@ -99,6 +99,5 @@ docker compose restart app
 docker compose down
 ```
 
-Example of docker compose with web + database + cache:
-File: **docker-compose.yml**
-```yaml
+---
+
